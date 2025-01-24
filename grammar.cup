@@ -1,0 +1,324 @@
+
+import java_cup.runtime.*;
+
+terminal CLASS, VOID, FINAL, RETURN;
+terminal String INT, CHAR, STRING, BOOL, FLOAT;
+terminal READ, PRINT, PRINTLINE;
+terminal IF, ELSE, WHILE, TRUE, FALSE;
+terminal ROUNDBR_OPEN, ROUNDBR_CLOSE, CURLYBR_OPEN, CURLYBR_CLOSE, SQRBR_OPEN, SQRBR_CLOSE;
+terminal SEMICOLON, COMMA, QUESTION, COLON, NOT;
+terminal INCREMENT, DECREMENT, MULTIPLY, DIVISION, PLUS, MINUS, ASSIGNMENT;
+terminal LTS, GTS, EQ, LTE, GTE, NE, OR, AND;
+terminal String ID;
+terminal int INTLITERAL;
+terminal float FLOATLITERAL;
+terminal String CHARLITERAL;
+terminal String STRINGLITERAL;
+terminal UPLUS, UMINUS;
+
+non terminal Program program;
+non terminal Memberdecls memberdecls;
+non terminal ClassMembers classmembers;
+non terminal Fielddecls fielddecls;
+non terminal Fielddecl fielddecl;
+non terminal Methoddecls methoddecls;
+non terminal Methoddecl methoddecl;
+// non terminal Optionalfinal optionalfinal;
+non terminal Expr optionalexpr;
+non terminal Boolean optionalsemi;
+// non terminal Returntype returntype;
+non terminal String type;
+non terminal ArgdeclList argdecllist;
+non terminal Argdecls argdecls;
+non terminal Argdecl argdecl;
+non terminal Stmts stmts;
+non terminal Stmt stmt;
+non terminal Stmt ifStmt;
+non terminal Stmt ifEnd;
+non terminal Args args;
+non terminal Name name;
+non terminal Readlist readlist;
+non terminal Printlist printlist;
+non terminal Printlinelist printlinelist;
+non terminal Expr expr;
+non terminal BinaryOp binaryOp;
+
+// PRECEDENCE //
+
+precedence left ELSE;
+
+precedence left ASSIGNMENT;
+
+precedence left QUESTION;
+
+precedence left OR;
+precedence left AND;
+
+precedence left NE, EQ;
+precedence left GTS, GTE, LTS, LTE;
+
+precedence left PLUS, MINUS;
+precedence left MULTIPLY, DIVISION;
+
+precedence left PLUS, MINUS;
+
+precedence right NOT, UPLUS, UMINUS;
+
+precedence right INCREMENT, DECREMENT;
+
+//Productions
+
+program ::= CLASS ID:id CURLYBR_OPEN memberdecls:ms CURLYBR_CLOSE
+			{: RESULT = new Program(id, ms); :}
+			;
+
+memberdecls ::= classmembers: cms
+            	{:  RESULT = new Memberdecls(cms);  :}
+            	;
+
+classmembers ::= 	fielddecl:fd classmembers:cms
+             		{: RESULT = new ClassMembers(fd, cms);  :}
+					| methoddecl: md methoddecls:mds
+					{: RESULT = new ClassMembers(md, mds);  :}
+					| {: RESULT = new ClassMembers();  :}
+					;
+
+fielddecls  ::=		fielddecl:f fielddecls:fs
+					{: RESULT = new Fielddecls(f,fs); :}
+					| 
+					{: RESULT = new Fielddecls(); :}
+					;
+
+methoddecls  ::=	methoddecl:m methoddecls:ms
+					{: RESULT = new Methoddecls(m,ms); :}
+					| 
+					{: RESULT = new Methoddecls(); :}
+					;
+
+fielddecl ::=	FINAL type:t ID:id optionalexpr:opex SEMICOLON
+				{: RESULT = new Fielddecl(true, t, id, opex); :}
+				|	type:t ID:id optionalexpr:opex SEMICOLON
+				{: RESULT = new Fielddecl(false, t, id, opex); :}
+				|	type:t ID:id SQRBR_OPEN INTLITERAL:len SQRBR_CLOSE SEMICOLON
+				{: RESULT = new Fielddecl(t, id, len); :}
+				;
+
+// optionalfinal ::=	FINAL
+//                		{: RESULT = true;  :}
+//            			| {: RESULT = false;  :}
+//            			;
+
+optionalexpr ::=	ASSIGNMENT expr:e
+					{: RESULT = e; :}
+					|
+					{: RESULT = null; :}
+					;
+
+methoddecl ::=	type:t ID:id ROUNDBR_OPEN argdecls:as ROUNDBR_CLOSE CURLYBR_OPEN fielddecls:fs stmts:sts CURLYBR_CLOSE optionalsemi:opsemi
+				{: RESULT = new Methoddecl(t, id, as, fs, sts, opsemi); :}
+				| VOID ID:id ROUNDBR_OPEN argdecls:as ROUNDBR_CLOSE CURLYBR_OPEN fielddecls:fs stmts:sts CURLYBR_CLOSE optionalsemi:opsemi
+				{: RESULT = new Methoddecl("void", id, as, fs, sts, opsemi); :}
+				;
+
+optionalsemi ::= 	SEMICOLON
+					{: RESULT = true; :}
+					|
+					{: RESULT = false; :}
+					;
+
+// returntype ::= 	type:t 
+//                	{: RESULT = new Returntype(t);  :};
+        //     		|VOID 
+        //         	{: RESULT =  new returntype('void');  :}
+        //     		;
+
+
+type ::=	INT
+			{: RESULT = "int"; :}
+			|	FLOAT
+			{: RESULT = "float"; :}
+			|	BOOL
+			{: RESULT = "bool"; :}
+			| CHAR
+			{: RESULT = "char"; :}
+			;
+
+argdecls ::=	argdecllist:alst
+				{: RESULT = new Argdecls(alst); :}
+				|
+				{: RESULT = new Argdecls(); :}
+				;
+
+argdecllist ::=	argdecl:a COMMA argdecllist:alst
+				{:
+				RESULT = new ArgdeclList(a,alst) ;
+				:}
+				|	argdecl:a
+				{:
+				RESULT = new ArgdeclList(a) ;
+				:}
+				;
+
+argdecl ::=		type:t ID:id
+				{: 
+				RESULT = new Argdecl(t, id, false); 
+				:}
+				|	type:t ID:id SQRBR_OPEN SQRBR_CLOSE
+				{: 
+				RESULT = new Argdecl(t, id, true); 
+				:}
+				;
+
+stmts ::=	stmt:st stmts:sts
+			{:
+				RESULT = new Stmts(st,sts);
+			:}
+			|
+			{: 
+			RESULT = new Stmts(); 
+			:}
+			;
+
+stmt ::=	ifStmt:ifstmt  // if else
+        	{: RESULT = ifstmt;  :}
+			|	WHILE ROUNDBR_OPEN expr:e ROUNDBR_CLOSE stmt:st
+			{: RESULT = new Stmt(e, st); :}
+			|	name:n ASSIGNMENT expr:e SEMICOLON
+			{: RESULT = new Stmt(n, e); :}
+			|	READ ROUNDBR_OPEN readlist:rl ROUNDBR_CLOSE SEMICOLON
+			{: RESULT = new Stmt(rl); :}
+			|   PRINT ROUNDBR_OPEN printlist:pl ROUNDBR_CLOSE SEMICOLON
+			{: RESULT = new Stmt(pl); :}
+			|	PRINTLINE ROUNDBR_OPEN printlinelist:pll ROUNDBR_CLOSE SEMICOLON
+			{: RESULT = new Stmt(pll); :}
+			|	ID:id ROUNDBR_OPEN ROUNDBR_CLOSE SEMICOLON
+			{: RESULT = new Stmt(id); :}
+			|	ID:id ROUNDBR_OPEN args:args ROUNDBR_CLOSE SEMICOLON
+			{: RESULT = new Stmt(id, args); :}
+			| 	RETURN SEMICOLON
+			{: RESULT = new Stmt(); :}
+			| 	RETURN expr:e SEMICOLON
+			{: RESULT = new Stmt(e); :}
+			|	name:n INCREMENT SEMICOLON
+			{: RESULT = new Stmt(n, "++"); :}
+			| 	name:n DECREMENT SEMICOLON
+			{: RESULT = new Stmt(n, "--"); :}
+			| 	CURLYBR_OPEN fielddecls:fs stmts:sts CURLYBR_CLOSE optionalsemi:opsemi
+			{: RESULT = new Stmt(fs, sts, opsemi); :}
+			;
+
+ifStmt ::= 	IF ROUNDBR_OPEN expr:ex ROUNDBR_CLOSE stmt:st1 ifEnd:st2
+        	{: RESULT = new Stmt(ex, st1, st2);  :};
+
+ifEnd ::=	ELSE stmt:st
+			{: RESULT = st; :}
+			|
+			{: RESULT = null; :}
+			;
+
+name ::=  ID:id
+		{: RESULT = new Name(id); :}
+        |  ID:id SQRBR_OPEN expr:e SQRBR_CLOSE
+		{: RESULT = new Name(id, e); :}
+		;
+
+args ::= 	expr:e COMMA args:args
+			{:
+				RESULT = new Args(e,args);
+			:}
+			|   expr:e
+			{:
+				RESULT = new Args(e);		
+			:}
+			;
+
+readlist ::=	name:n COMMA readlist:rl
+		    {:
+			    RESULT = new Readlist(n,rl);
+			:}
+			|	name:n
+			{:
+				RESULT = new Readlist(n);		
+			:}
+			;
+
+printlist ::=	expr:e COMMA printlist:pl
+				{:
+					RESULT = new Printlist(e,pl);
+				:}
+				|	expr:e
+				{:
+					RESULT = new Printlist(e);		
+				:}
+				;
+
+printlinelist ::=	printlist:pl 
+					{: 
+						RESULT = new Printlinelist(pl); 
+					:}
+					|
+					{: 
+						RESULT = new Printlinelist(); 
+					:}
+					;
+
+expr ::= 	name:n 
+			{: RESULT = new Expr(n);  :}
+			| ID:id ROUNDBR_OPEN ROUNDBR_CLOSE
+			{: RESULT = new Expr(id, (Args) null);  :}
+			| ID:id ROUNDBR_OPEN args:a ROUNDBR_CLOSE
+			{: RESULT = new Expr(id, a);  :}
+			| INTLITERAL:il 
+			{: RESULT = new Expr(il);  :}
+			| CHARLITERAL:cl 
+			{: RESULT = new Expr(cl, "char");  :}
+			| STRINGLITERAL:sl 
+			{: RESULT = new Expr(sl, "str");  :}
+			| FLOATLITERAL:fl 
+			{: RESULT = new Expr(fl);  :}
+			| TRUE
+			{: RESULT = new Expr(true);  :}
+			| FALSE
+			{: RESULT = new Expr(false);  :}
+			| ROUNDBR_OPEN expr:e ROUNDBR_CLOSE
+			{: RESULT = new Expr(e, "PAREN");  :}
+			| NOT expr:e 
+			{: RESULT = new Expr(e, "~");  :}
+			| MINUS expr:e
+			{: RESULT = new Expr(e, "-");  :} %prec UMINUS
+			| PLUS expr:e
+			{: RESULT = new Expr(e, "+");  :} %prec UPLUS
+			| ROUNDBR_OPEN type:t ROUNDBR_CLOSE expr:e
+			{: RESULT = new Expr(t, e);  :}
+			| binaryOp:bo
+			{: RESULT = new Expr(bo);  :}
+			| ROUNDBR_OPEN expr:e1 QUESTION expr:e2 COLON expr:e3 ROUNDBR_CLOSE
+			{: RESULT = new Expr(e1, e2, e3);  :}
+			;
+
+
+binaryOp ::= 	expr:e1 MULTIPLY expr:e2
+				{: RESULT = new BinaryOp(e1, e2, "*");  :}
+				| expr:e1 DIVISION expr:e2
+				{: RESULT = new BinaryOp(e1, e2, "/");  :}
+				| expr:e1 PLUS expr:e2
+				{: RESULT = new BinaryOp(e1, e2, "+");  :}
+				| expr:e1 MINUS expr:e2
+				{: RESULT = new BinaryOp(e1, e2, "-");  :}
+				| expr:e1 LTS expr:e2
+				{: RESULT = new BinaryOp(e1, e2, "<");  :}
+				| expr:e1 GTS expr:e2
+				{: RESULT = new BinaryOp(e1, e2, ">");  :}
+				| expr:e1 LTE expr:e2
+				{: RESULT = new BinaryOp(e1, e2, "<=");  :}
+				| expr:e1 GTE expr:e2
+				{: RESULT = new BinaryOp(e1, e2, ">=");  :}
+				| expr:e1 EQ expr:e2
+				{: RESULT = new BinaryOp(e1, e2, "==");  :}
+				| expr:e1 NE expr:e2
+				{: RESULT = new BinaryOp(e1, e2, "<>");  :}
+				| expr:e1 OR expr:e2
+				{: RESULT = new BinaryOp(e1, e2, "||");  :}
+				| expr:e1 AND expr:e2
+				{: RESULT = new BinaryOp(e1, e2, "&&");  :}
+				;
